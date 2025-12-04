@@ -5,7 +5,7 @@ import {
 } from "../../../scraper/scrapeURL/transformers/llmExtract";
 import { buildDocument } from "../build-document";
 import { Document, TokenUsage } from "../../../controllers/v1/types";
-import { getModel } from "../../../lib/generic-ai";
+import { getExtractModel, getExtractRetryModel, defaultExtractModel } from "../../../lib/generic-ai";
 import { extractData } from "../../../scraper/scrapeURL/lib/extractSmartScrape";
 import { CostTracking } from "../../cost-tracking";
 
@@ -57,8 +57,8 @@ export async function singleAnswerCompletion({
     },
     markdown: `${singleAnswerDocs.map((x, i) => `[START_PAGE (ID: ${i})]` + buildDocument(x)).join("\n")} [END_PAGE]\n`,
     isExtractEndpoint: true,
-    model: getModel("gemini-2.5-pro", "vertex"),
-    retryModel: getModel("gemini-2.5-pro", "google"),
+    model: getExtractModel(),
+    retryModel: getExtractRetryModel(),
     costTrackingOptions: {
       costTracking,
       metadata: {
@@ -96,7 +96,7 @@ export async function singleAnswerCompletion({
       promptTokens: 0,
       completionTokens: 0,
       totalTokens: 0,
-      model: "gemini-2.5-pro",
+      model: defaultExtractModel,
     },
     sources: singleAnswerDocs.map(
       doc => doc.metadata.url || doc.metadata.sourceURL || "",

@@ -2,7 +2,7 @@ import { MapDocument, URLTrace } from "../../controllers/v1/types";
 import { logger } from "../logger";
 import { generateCompletions } from "../../scraper/scrapeURL/transformers/llmExtract";
 import { buildRerankerUserPrompt } from "./build-prompts";
-import { getModel } from "../generic-ai";
+import { getRerankerModel, getRerankerRetryModel } from "../generic-ai";
 import { CostTracking } from "../cost-tracking";
 
 const THRESHOLD_FOR_SINGLEPAGE = 0.6;
@@ -114,7 +114,7 @@ export async function rerankLinksWithLLM(
               : `IMPORTANT: This is a specific information task.
                Score URLs based on precision and relevance to answering the query.`
           }
-        
+
           Scoring guidelines:
           ${
             isMultiEntity
@@ -124,7 +124,7 @@ export async function rerankLinksWithLLM(
           - 0.6: Mentions entity type but no clear instance
           - 0.4: Only tangentially related to entity type
           - Below 0.4: No mention of relevant entities, or duplicates
-          
+
           Reason: ${reasoning}
           `
               : `
@@ -141,8 +141,8 @@ export async function rerankLinksWithLLM(
           let completion: any;
           try {
             const completionPromise = generateCompletions({
-              model: getModel("gemini-2.5-pro", "vertex"),
-              retryModel: getModel("gemini-2.5-pro", "google"),
+              model: getRerankerModel(),
+              retryModel: getRerankerRetryModel(),
               logger: logger.child({
                 method: "rerankLinksWithLLM",
                 chunk: chunkIndex + 1,
