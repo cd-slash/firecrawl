@@ -9,7 +9,7 @@ import {
   buildBatchExtractPrompt,
   buildBatchExtractSystemPrompt,
 } from "../build-prompts";
-import { getModel } from "../../generic-ai";
+import { getExtractModel, getExtractRetryModel } from "../../generic-ai";
 import { CostTracking, CostLimitExceededError } from "../../cost-tracking";
 import fs from "fs/promises";
 import { extractData } from "../../../scraper/scrapeURL/lib/extractSmartScrape";
@@ -84,8 +84,8 @@ export async function batchExtractPromise(
     },
     markdown: buildDocument(doc),
     isExtractEndpoint: true,
-    model: getModel("gemini-2.5-pro", "vertex"),
-    retryModel: getModel("gemini-2.5-pro", "google"),
+    model: getExtractModel(),
+    retryModel: getExtractRetryModel(),
     costTrackingOptions: {
       costTracking: options.costTracking,
       metadata: {

@@ -7,6 +7,12 @@ import {
   CostLimitExceededError,
   CostTracking,
 } from "../../../lib/cost-tracking";
+import {
+  defaultSmartScrapeThinkingModel,
+  defaultSmartScrapeThinkingProvider,
+  defaultSmartScrapeToolModel,
+  defaultSmartScrapeToolProvider,
+} from "../../../lib/generic-ai";
 configDotenv();
 
 // Define schemas outside the function scope
@@ -89,8 +95,8 @@ export async function smartScrape({
         scrapeId,
         models: {
           thinkingModel: {
-            model: "gemini-2.5-pro",
-            provider: "vertex",
+            model: defaultSmartScrapeThinkingModel,
+            provider: defaultSmartScrapeThinkingProvider,
             supportTools: true,
             toolChoice: "required",
             cost: {
@@ -99,8 +105,8 @@ export async function smartScrape({
             },
           },
           toolModel: {
-            model: "gemini-2.0-flash",
-            provider: "google",
+            model: defaultSmartScrapeToolModel,
+            provider: defaultSmartScrapeToolProvider,
           },
         },
       },
