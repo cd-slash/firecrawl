@@ -36,11 +36,11 @@ import {
 } from "../../controllers/v2/types";
 import { StoredCrawl, crawlToCrawler, saveCrawl } from "../../lib/crawl-redis";
 import { _addScrapeJobToBullMQ } from "../queue-jobs";
-import { BullMQOtel } from "bullmq-otel";
 import { withSpan, setSpanAttributes } from "../../lib/otel-tracer";
 import { crawlGroup } from "../worker/nuq";
 import { getACUCTeam } from "../../controllers/auth";
 import { supabase_service } from "../supabase";
+import { processEngpickerJob } from "../../lib/engpicker";
 
 const workerLockDuration = Number(process.env.WORKER_LOCK_DURATION) || 60000;
 const workerStalledCheckInterval =
@@ -574,7 +574,6 @@ const workerFun = async (
     lockDuration: workerLockDuration,
     stalledInterval: workerStalledCheckInterval,
     maxStalledCount: queue.name === precrawlQueueName ? 0 : 10,
-    telemetry: new BullMQOtel("firecrawl-bullmq"),
   });
 
   worker.startStalledCheckTimer();
@@ -661,7 +660,7 @@ async function tallyBilling() {
   for (const teamId of billedTeams) {
     logger.info("Updating tally for team", { teamId });
 
-    const { error } = await supabase_service.rpc("update_tally_5_team", {
+    const { error } = await supabase_service.rpc("update_tally_6_team", {
       i_team_id: teamId,
     });
 
@@ -775,6 +774,17 @@ const DOMAIN_FREQUENCY_INTERVAL = 10000;
     5 * 60 * 1000,
   );
 
+  const engpickerPromise = (async () => {
+    while (!isShuttingDown) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        await processEngpickerJob();
+      } catch (e) {
+        logger.error("Error processing engpicker job", { error: e });
+      }
+    }
+  })();
+
   // Search indexing is now handled by separate search service
   // The search service has its own worker that processes the queue
   // This worker no longer needs to process search index jobs
@@ -797,7 +807,11 @@ const DOMAIN_FREQUENCY_INTERVAL = 10000;
   }
 
   // Wait for all workers to complete (which should only happen on shutdown)
-  await Promise.all([billingWorkerPromise, precrawlWorkerPromise]);
+  await Promise.all([
+    billingWorkerPromise,
+    precrawlWorkerPromise,
+    engpickerPromise,
+  ]);
 
   clearInterval(indexInserterInterval);
   clearInterval(webhookInserterInterval);
